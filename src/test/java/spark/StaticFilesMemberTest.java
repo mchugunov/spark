@@ -106,7 +106,7 @@ public class StaticFilesMemberTest {
         String expectedContentType = response.headers.get("Content-Type");
         Assert.assertEquals(expectedContentType, "application/javascript");
 
-        String body = response.body;
+        String body = response.body.replace("\r\n", "\n");
         Assert.assertEquals("export default function () { console.log(\"Hello, I'm a .mjs file\"); }\n", body);
     }
 

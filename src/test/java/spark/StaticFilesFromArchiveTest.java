@@ -17,12 +17,15 @@
 package spark;
 
 import static java.lang.ClassLoader.getSystemClassLoader;
-import static java.lang.System.arraycopy;
 import static org.junit.Assert.assertEquals;
 
+import java.io.File;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -66,16 +69,27 @@ public class StaticFilesFromArchiveTest {
         classLoader = extendedClassLoader;
     }
 
-    private static URLClassLoader createExtendedClassLoader() {
-        URL[] parentURLs = ((URLClassLoader) getSystemClassLoader()).getURLs();
-        URL[] urls = new URL[parentURLs.length + 1];
-        arraycopy(parentURLs, 0, urls, 0, parentURLs.length);
+    private static URLClassLoader createExtendedClassLoader() throws Exception {
+        List<URL> urls = new ArrayList<>();
+        addClassPathEntries(urls);
 
         URL publicJar = StaticFilesFromArchiveTest.class.getResource("/public-jar.zip");
-        urls[urls.length - 1] = publicJar;
+        urls.add(publicJar);
 
         // no parent classLoader because Spark and the static resources need to be loaded from the same classloader
-        return new URLClassLoader(urls, null);
+        return new URLClassLoader(urls.toArray(new URL[urls.size()]), null);
+    }
+
+    private static void addClassPathEntries(List<URL> urls) throws Exception {
+        ClassLoader systemClassLoader = getSystemClassLoader();
+        if (systemClassLoader instanceof URLClassLoader) {
+            Collections.addAll(urls, ((URLClassLoader) systemClassLoader).getURLs());
+            return;
+        }
+
+        for (String path : System.getProperty("java.class.path").split(File.pathSeparator)) {
+            urls.add(new File(path).toURI().toURL());
+        }
     }
 
     @Test
